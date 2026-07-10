@@ -10,10 +10,10 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def generate_content(topic, content_type, retrieved_information):
 
-    # Limit retrieved text so we do not waste Groq tokens
+    # Limit retrieved text
     retrieved_information = str(retrieved_information)[:10000]
 
-    prompt = f"""
+    generation_prompt = f"""
 Create TWO publish-ready content versions using ONLY the source information.
 
 TOPIC:
@@ -32,9 +32,6 @@ RULES:
 - Return ONLY JSON.
 - version_1 MUST be one plain string.
 - version_2 MUST be one plain string.
-- Do NOT return nested objects.
-- Do NOT return title/content objects.
-- Do NOT return arrays or lists.
 
 EXACT FORMAT:
 {{
@@ -44,6 +41,10 @@ EXACT FORMAT:
 """
 
     try:
+
+        # -----------------------------
+        # Generate Version 1 & Version 2
+        # -----------------------------
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
@@ -53,7 +54,7 @@ EXACT FORMAT:
                 },
                 {
                     "role": "user",
-                    "content": prompt
+                    "content": generation_prompt
                 }
             ],
             temperature=0.3,
@@ -61,34 +62,69 @@ EXACT FORMAT:
             response_format={"type": "json_object"}
         )
 
-        result = json.loads(
-            response.choices[0].message.content
+        result = json.loads(response.choices[0].message.content)
+
+        version_1 = str(result.get("version_1", "")).strip()
+        version_2 = str(result.get("version_2", "")).strip()
+
+        # -----------------------------
+        # Optimization Step
+        # -----------------------------
+        optimization_prompt = f"""
+You are an expert AI Content Optimizer.
+
+You are given two versions of the same content.
+
+Version 1:
+{version_1}
+
+Version 2:
+{version_2}
+
+Your task is to:
+
+1. Compare both versions.
+2. Keep only the strongest points.
+3. Remove duplicate information.
+4. Improve readability.
+5. Improve grammar.
+6. Improve clarity.
+7. Preserve factual accuracy.
+8. Produce ONE polished version.
+
+Return ONLY the final optimized content.
+"""
+
+        optimized_response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert AI content editor."
+                },
+                {
+                    "role": "user",
+                    "content": optimization_prompt
+                }
+            ],
+            temperature=0.2,
+            max_tokens=1200
         )
 
-        version_1 = result["version_1"]
-        version_2 = result["version_2"]
+        optimized_version = (
+            optimized_response.choices[0]
+            .message.content
+            .strip()
+        )
 
-        # Emergency handling if model still returns dictionary
-        if isinstance(version_1, dict):
-            content = version_1.get("content", "")
-            if isinstance(content, list):
-                version_1 = "\n\n".join(content)
-            else:
-                version_1 = str(content)
-
-        if isinstance(version_2, dict):
-            content = version_2.get("content", "")
-            if isinstance(content, list):
-                version_2 = "\n\n".join(content)
-            else:
-                version_2 = str(content)
-
-        return str(version_1), str(version_2)
+        return version_1, version_2, optimized_version
 
     except Exception as error:
+
         print("OPTIMIZER ERROR:", error)
 
         return (
             "Content generation temporarily unavailable.",
-            "Content generation temporarily unavailable."
+            "Content generation temporarily unavailable.",
+            "Content optimization temporarily unavailable."
         )
