@@ -4,53 +4,100 @@ import re
 from dotenv import load_dotenv
 from groq import Groq
 
-# Load environment variables
+
 load_dotenv()
 
-# Create Groq client
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+client = Groq(api_key=GROQ_API_KEY)
 
 
-def audit_content(content, retrieved_information):
+def audit_content(optimized_content, retrieved_information):
+
+    # Limit source information to reduce token usage
+    retrieved_information = str(retrieved_information)[:5000]
 
     prompt = f"""
-You are an AI Content Auditor.
+You are an AI Content Auditor and Claim Verification Agent.
 
-Compare the generated content ONLY with the retrieved information.
+Analyze the optimized content using ONLY the provided source information.
 
-Retrieved Information:
+SOURCE INFORMATION:
 {retrieved_information}
 
-Generated Content:
-{content}
+OPTIMIZED CONTENT:
+{optimized_content}
 
-Your task is to audit the content based on:
+Perform TWO tasks.
 
-1. Factual accuracy
-2. Grammar quality
-3. Clarity
-4. Hallucination risk
+TASK 1: CONTENT AUDIT
 
-Return ONLY valid JSON.
+Evaluate:
 
-Use exactly this structure:
+1. Accuracy score from 0 to 100.
+2. Grammar score from 0 to 100.
+3. Clarity score from 0 to 100.
+4. Hallucination risk as LOW, MEDIUM, or HIGH.
+5. Give brief feedback.
 
-{{
-    "accuracy_score": 95,
-    "grammar_score": 98,
-    "clarity_score": 94,
-    "hallucination_risk": "LOW",
-    "feedback": "Brief explanation."
-}}
+TASK 2: CLAIM VERIFICATION
+
+Identify the important factual claims.
+
+For each claim, classify it as:
+
+SUPPORTED:
+The source information supports the claim.
+
+UNSUPPORTED:
+There is not enough source evidence.
+
+CONTRADICTED:
+The source information conflicts with the claim.
+
+Count:
+
+- Supported claims
+- Unsupported claims
+- Contradicted claims
+
+Keep verification details concise.
 
 IMPORTANT RULES:
 
-Do not write explanations outside the JSON.
-Do not use markdown.
-Do not use ```json.
-Return JSON only.
+- Use ONLY the provided source information.
+- Do not use outside knowledge.
+- Be strict.
+- Do not invent evidence.
+- Check only important factual claims.
+- Maximum 8 claims.
+- Keep reasons short.
+- Return ONLY valid JSON.
+- Do not use markdown.
+
+Return exactly this structure:
+
+{{
+    "audit": {{
+        "accuracy_score": 0,
+        "grammar_score": 0,
+        "clarity_score": 0,
+        "hallucination_risk": "LOW",
+        "feedback": "Short feedback"
+    }},
+    "verification": {{
+        "supported_claims": 0,
+        "unsupported_claims": 0,
+        "contradicted_claims": 0,
+        "verification_details": [
+            {{
+                "claim": "Factual claim",
+                "status": "SUPPORTED",
+                "reason": "Short reason"
+            }}
+        ]
+    }}
+}}
 """
 
     try:
@@ -59,35 +106,45 @@ Return JSON only.
             model="llama-3.1-8b-instant",
             messages=[
                 {
+                    "role": "system",
+                    "content": (
+                        "You are an AI Content Auditor and "
+                        "Claim Verification Agent. "
+                        "Return only valid JSON."
+                    )
+                },
+                {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=1000
+            temperature=0.1,
+            max_tokens=800,
+            response_format={"type": "json_object"}
         )
 
-        response_text = response.choices[0].message.content.strip()
+        response_text = (
+            response.choices[0]
+            .message.content
+            .strip()
+        )
 
-        # ---------- DEBUG ----------
-        print("\n========== GROQ RAW RESPONSE ==========\n")
-        print(response_text)
-        print("\n=======================================\n")
-        # ---------------------------
+        response_text = response_text.replace(
+            "```json",
+            ""
+        )
 
-        # Remove markdown formatting if Groq adds it
-        response_text = response_text.replace("```json", "")
-        response_text = response_text.replace("```", "").strip()
+        response_text = response_text.replace(
+            "```",
+            ""
+        ).strip()
 
         try:
 
-            result = json.loads(response_text)
+            return json.loads(response_text)
 
-            return result
+        except json.JSONDecodeError:
 
-        except Exception:
-
-            # Try extracting JSON from response
             match = re.search(
                 r"\{.*\}",
                 response_text,
@@ -98,62 +155,92 @@ Return JSON only.
 
                 try:
 
-                    result = json.loads(match.group())
+                    return json.loads(match.group())
 
-                    return result
-
-                except Exception:
+                except json.JSONDecodeError:
 
                     pass
 
-            # Return fallback result
             return {
-                "accuracy_score": 0,
-                "grammar_score": 0,
-                "clarity_score": 0,
-                "hallucination_risk": "UNKNOWN",
-                "feedback": response_text
+                "audit": {
+                    "accuracy_score": 0,
+                    "grammar_score": 0,
+                    "clarity_score": 0,
+                    "hallucination_risk": "UNKNOWN",
+                    "feedback": "Invalid auditor response."
+                },
+                "verification": {
+                    "supported_claims": 0,
+                    "unsupported_claims": 0,
+                    "contradicted_claims": 0,
+                    "verification_details": []
+                }
             }
 
     except Exception as error:
 
-        print("GROQ ERROR:", error)
+        print("AUDITOR AND VERIFIER ERROR:", error)
 
         return {
-            "accuracy_score": 0,
-            "grammar_score": 0,
-            "clarity_score": 0,
-            "hallucination_risk": "ERROR",
-            "feedback": str(error)
+            "audit": {
+                "accuracy_score": 0,
+                "grammar_score": 0,
+                "clarity_score": 0,
+                "hallucination_risk": "ERROR",
+                "feedback": "Analysis temporarily unavailable."
+            },
+            "verification": {
+                "supported_claims": 0,
+                "unsupported_claims": 0,
+                "contradicted_claims": 0,
+                "verification_details": []
+            }
         }
 
 
-# ============================================================
-# TEST THE CONTENT AUDITOR
-# ============================================================
+# ---------------------------------------
+# TEMPORARY TEST
+# ---------------------------------------
 
 if __name__ == "__main__":
 
     from web_search import search_web
     from content_optimizer import generate_content
+    from content_verifier import verify_content
 
     topic = "Latest FIFA Club World Cup news"
 
     content_type = "News Article"
 
-    retrieved_information, _ = search_web(topic)
+    print("Step 1: Retrieving information...")
 
-    version_1, version_2 = generate_content(
+    retrieved_information, sources = search_web(topic)
+
+    print("Step 2: Generating content...")
+
+    version_1, version_2, optimized_content = generate_content(
         topic,
         content_type,
         retrieved_information
     )
 
-    print("\n========== AUDITING VERSION 1 ==========\n")
+    print("Step 3: Auditing and verifying...")
 
-    audit_result = audit_content(
-        version_1,
+    analysis_result = audit_content(
+        optimized_content,
         retrieved_information
     )
 
+    audit_result = analysis_result["audit"]
+
+    verification_result = verify_content(
+        analysis_result
+    )
+
+    print("\n--- AUDIT RESULTS ---\n")
+
     print(audit_result)
+
+    print("\n--- VERIFICATION RESULTS ---\n")
+
+    print(verification_result)

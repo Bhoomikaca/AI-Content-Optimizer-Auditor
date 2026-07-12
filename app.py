@@ -16,65 +16,70 @@ st.set_page_config(
     layout="wide"
 )
 
+
 # ======================================================
 # CUSTOM CSS
 # ======================================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-.main{
-    background-color:#0E1117;
-}
+    .main {
+        background-color: #0E1117;
+    }
 
-.block-container{
-    padding-top:2rem;
-    padding-bottom:2rem;
-}
+    .block-container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
 
-h1,h2,h3{
-    color:white;
-}
+    h1, h2, h3 {
+        color: white;
+    }
 
-.stButton>button{
-    width:100%;
-    height:3.2em;
-    border-radius:12px;
-    border:none;
-    background:linear-gradient(90deg,#2563eb,#9333ea);
-    color:white;
-    font-size:18px;
-    font-weight:bold;
-}
+    .stButton > button {
+        width: 100%;
+        height: 3.2em;
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(90deg, #2563eb, #9333ea);
+        color: white;
+        font-size: 18px;
+        font-weight: bold;
+    }
 
-.stButton>button:hover{
-    transform:scale(1.02);
-}
+    .stButton > button:hover {
+        transform: scale(1.02);
+    }
 
-.metric-card{
-    background:#1a1f2e;
-    padding:18px;
-    border-radius:15px;
-    border:1px solid #2b3245;
-}
+    .metric-card {
+        background: #1a1f2e;
+        padding: 18px;
+        border-radius: 15px;
+        border: 1px solid #2b3245;
+    }
 
-.result-card{
-    background:#171c28;
-    padding:25px;
-    border-radius:18px;
-    border:1px solid #2d3748;
-    margin-bottom:20px;
-}
+    .result-card {
+        background: #171c28;
+        padding: 25px;
+        border-radius: 18px;
+        border: 1px solid #2d3748;
+        margin-bottom: 20px;
+    }
 
-.success-card{
-    background:#11281b;
-    padding:20px;
-    border-radius:15px;
-    border:1px solid #2e8b57;
-}
+    .success-card {
+        background: #11281b;
+        padding: 20px;
+        border-radius: 15px;
+        border: 1px solid #2e8b57;
+    }
 
-</style>
-""", unsafe_allow_html=True)
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # ======================================================
 # SIDEBAR
@@ -89,7 +94,8 @@ with st.sidebar:
 
     st.title("AI Pipeline")
 
-    st.markdown("""
+    st.markdown(
+        """
 ✔ Web Retrieval
 
 ✔ Content Generation
@@ -98,45 +104,53 @@ with st.sidebar:
 
 ✔ Content Audit
 
-✔ Fact Verification
-""")
+✔ Claim Verification
+
+✔ Final Decision
+"""
+    )
 
     st.divider()
 
     st.info(
-        "This application generates content using real-time web information, "
-        "optimizes it, audits quality, and verifies factual consistency."
+        "This application generates content using real-time "
+        "web information, optimizes it, audits quality, "
+        "and verifies factual claims."
     )
+
 
 # ======================================================
 # HEADER
 # ======================================================
 
-st.markdown("""
+st.markdown(
+    """
 # 🤖 AI Content Optimizer & Auditor
 
 Generate **high-quality AI content** using real-time web information,
-automatically optimize it, audit quality, and verify factual accuracy.
-""")
+automatically optimize it, audit content quality, and verify factual claims.
+"""
+)
 
 st.divider()
+
 
 # ======================================================
 # INPUT SECTION
 # ======================================================
 
-col1,col2=st.columns([3,1])
+col1, col2 = st.columns([3, 1])
 
 with col1:
 
-    topic=st.text_input(
+    topic = st.text_input(
         "Enter Topic",
-        placeholder="Example: FIFA Club World Cup"
+        placeholder="Example: Latest FIFA Club World Cup News"
     )
 
 with col2:
 
-    content_type=st.selectbox(
+    content_type = st.selectbox(
         "Content Type",
         [
             "News Article",
@@ -146,13 +160,21 @@ with col2:
         ]
     )
 
+
 st.write("")
 
-generate=st.button("🚀 Generate AI Content")
+
+generate = st.button("🚀 Generate AI Content")
+
+
+# ======================================================
+# START PIPELINE
+# ======================================================
 
 if generate:
 
     if not topic:
+
         st.warning("Please enter a topic.")
 
     else:
@@ -164,19 +186,27 @@ if generate:
                 expanded=True
             )
 
-            # ============================================
-            # STEP 1 : WEB SEARCH
-            # ============================================
 
-            status.write("🔍 Searching latest information...")
+            # ==================================================
+            # STEP 1: WEB SEARCH
+            # ==================================================
+
+            status.write(
+                "🔍 Searching for the latest information..."
+            )
 
             retrieved_information, sources = search_web(topic)
 
             status.write("✅ Web search completed.")
 
             status.write(
-                "📚 Found {} trusted sources.".format(len(sources))
+                f"📚 Found {len(sources)} sources."
             )
+
+
+            # ==================================================
+            # DISPLAY RETRIEVED SOURCES
+            # ==================================================
 
             st.divider()
 
@@ -186,91 +216,119 @@ if generate:
                 f"Total Sources Retrieved: **{len(sources)}**"
             )
 
-            with st.expander("📖 View Sources", expanded=True):
+            with st.expander(
+                "📖 View Retrieved Sources",
+                expanded=True
+            ):
 
-                for i, source in enumerate(sources, start=1):
+                for i, source in enumerate(
+                    sources,
+                    start=1
+                ):
 
                     st.markdown(
                         f"""
-**{i}. {source['title']}**
+**{i}. {source.get('title', 'Unknown Source')}**
 
-🔗 {source['url']}
+🔗 {source.get('url', 'URL unavailable')}
 """
                     )
 
-            # ============================================
-            # STEP 2 : GENERATE + OPTIMIZE
-            # ============================================
 
-            status.write("✍ Generating two AI content drafts...")
+            # ==================================================
+            # STEP 2: CONTENT GENERATION + OPTIMIZATION
+            # ==================================================
 
-            version1, version2, optimized_version = generate_content(
+            status.write(
+                "✍️ Generating two AI content versions..."
+            )
+
+            version_1, version_2, optimized_content = generate_content(
                 topic,
                 content_type,
                 retrieved_information
             )
 
             status.write(
-                "✨ Merging and optimizing the best content..."
+                "✨ Final optimized content generated."
             )
 
-            # ============================================
-            # STEP 3 : AUDIT
-            # ============================================
+
+            # ==================================================
+            # STEP 3: AUDIT + CLAIM VERIFICATION
+            # ONE GROQ CALL
+            # ==================================================
 
             status.write(
-                "📊 Evaluating quality, grammar and hallucination risk..."
+                "📊 Auditing content and verifying factual claims..."
             )
 
-            audit = audit_content(
-                optimized_version,
+            analysis_result = audit_content(
+                optimized_content,
                 retrieved_information
             )
 
-            status.write("✅ Audit completed.")
 
-            # ============================================
-            # STEP 4 : VERIFY
-            # ============================================
+            # ==================================================
+            # EXTRACT AUDIT RESULT
+            # ==================================================
 
-            status.write(
-                "🔬 Cross-checking claims with retrieved sources..."
+            audit = analysis_result.get(
+                "audit",
+                {}
             )
+
+
+            # ==================================================
+            # EXTRACT VERIFICATION RESULT
+            # ZERO EXTRA GROQ CALLS
+            # ==================================================
 
             verification = verify_content(
-                optimized_version,
-                retrieved_information
+                analysis_result
             )
 
-            status.write("✅ Verification completed.")
 
-            # ============================================
+            status.write("✅ Content audit completed.")
+
+            status.write("✅ Claim verification completed.")
+
+
+            # ==================================================
             # PIPELINE COMPLETE
-            # ============================================
+            # ==================================================
 
             status.update(
                 label="🎉 Pipeline Completed Successfully!",
-                state="complete"
+                state="complete",
+                expanded=False
             )
 
             st.success(
                 "AI pipeline executed successfully."
             )
 
-            st.divider()
 
-                        # ============================================
-            # CONTENT OPTIMIZER - DRAFT VERSIONS
-            # ============================================
+            # ==================================================
+            # CONTENT OPTIMIZER OUTPUT
+            # ==================================================
+
+            st.divider()
 
             st.header("✍️ Content Optimizer")
 
             st.write(
-                "Two content versions were generated using the "
-                "retrieved web information."
+                "Two content versions were generated from "
+                "the retrieved web information."
             )
 
+
+            # ==================================================
+            # DISPLAY VERSION 1 AND VERSION 2
+            # ==================================================
+
             col1, col2 = st.columns(2)
+
 
             with col1:
 
@@ -279,11 +337,12 @@ if generate:
                 st.markdown(
                     f"""
 <div class="result-card">
-{version1}
+{version_1}
 </div>
 """,
                     unsafe_allow_html=True
                 )
+
 
             with col2:
 
@@ -292,109 +351,44 @@ if generate:
                 st.markdown(
                     f"""
 <div class="result-card">
-{version2}
+{version_2}
 </div>
 """,
                     unsafe_allow_html=True
                 )
 
+
+            # ==================================================
+            # FINAL OPTIMIZED CONTENT
+            # ==================================================
+
             st.divider()
 
-                        # ============================================
-            # DISPLAY OPTIMIZED FINAL CONTENT
-            # ============================================
-
             st.header("✨ Final Optimized Content")
+
+            st.write(
+                "The strongest information from both versions "
+                "has been combined, refined, and simplified."
+            )
 
             st.markdown(
                 f"""
 <div class="result-card">
-{optimized_version}
+{optimized_content}
 </div>
 """,
                 unsafe_allow_html=True
             )
 
-            # ============================================
-            # DISPLAY AUDIT REPORT
-            # ============================================
+
+            # ==================================================
+            # CONTENT AUDITOR ANALYSIS
+            # ==================================================
 
             st.divider()
 
             st.header("📊 Content Auditor Analysis")
 
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-                st.metric(
-                    "Accuracy Score",
-                    f"{audit.get('accuracy_score', 0)}/100"
-                )
-
-            with col2:
-                st.metric(
-                    "Grammar Score",
-                    f"{audit.get('grammar_score', 0)}/100"
-                )
-
-            with col3:
-                st.metric(
-                    "Clarity Score",
-                    f"{audit.get('clarity_score', 0)}/100"
-                )
-
-            # ============================================
-            # HALLUCINATION RISK
-            # ============================================
-
-            st.subheader("🧠 Hallucination Risk")
-
-            hallucination_risk = audit.get(
-                "hallucination_risk",
-                "UNKNOWN"
-            )
-
-            if hallucination_risk == "LOW":
-                st.success("✅ LOW RISK")
-
-            elif hallucination_risk == "MEDIUM":
-                st.warning("⚠️ MEDIUM RISK")
-
-            else:
-                st.error(
-                    f"❌ {hallucination_risk} RISK"
-                )
-
-            # ============================================
-            # AUDITOR FEEDBACK
-            # ============================================
-
-            with st.expander("📝 View Detailed Auditor Feedback"):
-
-                st.write(
-                    audit.get(
-                        "feedback",
-                        "No feedback available."
-                    )
-                )
-
-            # ============================================
-            # DISPLAY VERIFICATION RESULTS
-            # ============================================
-
-            st.divider()
-
-            st.header("🔬 Fact Verification Results")
-
-            st.write(verification)
-
-            # ============================================
-            # FINAL DECISION
-            # ============================================
-
-            st.divider()
-
-            st.header("🏆 Final Decision")
 
             accuracy_score = audit.get(
                 "accuracy_score",
@@ -411,15 +405,257 @@ if generate:
                 0
             )
 
+            hallucination_risk = audit.get(
+                "hallucination_risk",
+                "UNKNOWN"
+            )
+
+
+            # ==================================================
+            # DISPLAY AUDIT SCORES
+            # ==================================================
+
+            col1, col2, col3 = st.columns(3)
+
+
+            with col1:
+
+                st.metric(
+                    "Accuracy Score",
+                    f"{accuracy_score}/100"
+                )
+
+
+            with col2:
+
+                st.metric(
+                    "Grammar Score",
+                    f"{grammar_score}/100"
+                )
+
+
+            with col3:
+
+                st.metric(
+                    "Clarity Score",
+                    f"{clarity_score}/100"
+                )
+
+
+            # ==================================================
+            # HALLUCINATION RISK
+            # ==================================================
+
+            st.subheader("🧠 Hallucination Risk")
+
+
+            if hallucination_risk == "LOW":
+
+                st.success("✅ LOW RISK")
+
+
+            elif hallucination_risk == "MEDIUM":
+
+                st.warning("⚠️ MEDIUM RISK")
+
+
+            elif hallucination_risk == "HIGH":
+
+                st.error("❌ HIGH RISK")
+
+
+            else:
+
+                st.warning(
+                    f"⚠️ {hallucination_risk}"
+                )
+
+
+            # ==================================================
+            # AUDITOR FEEDBACK
+            # ==================================================
+
+            with st.expander(
+                "📝 View Detailed Auditor Feedback"
+            ):
+
+                st.write(
+                    audit.get(
+                        "feedback",
+                        "No auditor feedback available."
+                    )
+                )
+
+
+            # ==================================================
+            # CLAIM VERIFICATION RESULTS
+            # ==================================================
+
+            st.divider()
+
+            st.header("🔬 Claim Verification Results")
+
+
+            supported_claims = verification.get(
+                "supported_claims",
+                0
+            )
+
+            unsupported_claims = verification.get(
+                "unsupported_claims",
+                0
+            )
+
+            contradicted_claims = verification.get(
+                "contradicted_claims",
+                0
+            )
+
+
+            # ==================================================
+            # CLAIM METRICS
+            # ==================================================
+
+            col1, col2, col3 = st.columns(3)
+
+
+            with col1:
+
+                st.metric(
+                    "Supported Claims",
+                    supported_claims
+                )
+
+
+            with col2:
+
+                st.metric(
+                    "Unsupported Claims",
+                    unsupported_claims
+                )
+
+
+            with col3:
+
+                st.metric(
+                    "Contradicted Claims",
+                    contradicted_claims
+                )
+
+
+            # ==================================================
+            # VERIFICATION DETAILS
+            # ==================================================
+
+            verification_details = verification.get(
+                "verification_details",
+                []
+            )
+
+
+            with st.expander(
+                "📋 View Claim Verification Details"
+            ):
+
+                if verification_details:
+
+                    for i, detail in enumerate(
+                        verification_details,
+                        start=1
+                    ):
+
+                        st.markdown(
+                            f"### Claim {i}"
+                        )
+
+
+                        st.write(
+                            "**Claim:**",
+                            detail.get(
+                                "claim",
+                                "Claim unavailable"
+                            )
+                        )
+
+
+                        claim_status = detail.get(
+                            "status",
+                            "UNKNOWN"
+                        )
+
+
+                        if claim_status == "SUPPORTED":
+
+                            st.success(
+                                "✅ SUPPORTED"
+                            )
+
+
+                        elif claim_status == "UNSUPPORTED":
+
+                            st.warning(
+                                "⚠️ UNSUPPORTED"
+                            )
+
+
+                        elif claim_status == "CONTRADICTED":
+
+                            st.error(
+                                "❌ CONTRADICTED"
+                            )
+
+
+                        else:
+
+                            st.info(
+                                claim_status
+                            )
+
+
+                        st.write(
+                            "**Reason:**",
+                            detail.get(
+                                "reason",
+                                "Reason unavailable"
+                            )
+                        )
+
+
+                        st.divider()
+
+
+                else:
+
+                    st.info(
+                        "No verification details available."
+                    )
+
+
+            # ==================================================
+            # FINAL DECISION
+            # ==================================================
+
+            st.divider()
+
+            st.header("🏆 Final Decision")
+
+
             average_score = (
                 accuracy_score
                 + grammar_score
                 + clarity_score
             ) / 3
 
+
+            # ==================================================
+            # READY TO PUBLISH
+            # ==================================================
+
             if (
                 average_score >= 80
                 and hallucination_risk == "LOW"
+                and unsupported_claims == 0
+                and contradicted_claims == 0
             ):
 
                 st.success(
@@ -428,12 +664,26 @@ if generate:
 
 Overall Quality Score: {average_score:.1f}/100
 
-The content has successfully completed generation,
-optimization, auditing, and fact verification.
+Supported Claims: {supported_claims}
+
+Unsupported Claims: {unsupported_claims}
+
+Contradicted Claims: {contradicted_claims}
+
+The content successfully completed generation,
+optimization, auditing, and claim verification.
 """
                 )
 
-            elif average_score >= 60:
+
+            # ==================================================
+            # REVIEW RECOMMENDED
+            # ==================================================
+
+            elif (
+                average_score >= 60
+                and contradicted_claims == 0
+            ):
 
                 st.warning(
                     f"""
@@ -441,9 +691,21 @@ optimization, auditing, and fact verification.
 
 Overall Quality Score: {average_score:.1f}/100
 
-The content may require minor improvements before publishing.
+Supported Claims: {supported_claims}
+
+Unsupported Claims: {unsupported_claims}
+
+Contradicted Claims: {contradicted_claims}
+
+The content may require minor improvements
+before publishing.
 """
                 )
+
+
+            # ==================================================
+            # NEEDS IMPROVEMENT
+            # ==================================================
 
             else:
 
@@ -453,43 +715,109 @@ The content may require minor improvements before publishing.
 
 Overall Quality Score: {average_score:.1f}/100
 
-The content requires further optimization before publishing.
+Supported Claims: {supported_claims}
+
+Unsupported Claims: {unsupported_claims}
+
+Contradicted Claims: {contradicted_claims}
+
+The content requires further improvement
+before publishing.
 """
                 )
 
-           
+
+            # ==================================================
+            # DISPLAY FINAL PUBLISHABLE CONTENT
+            # ==================================================
+
+            st.divider()
+
+            st.header("📄 Final Content")
+
+            st.write(
+                optimized_content
+            )
+
+
+        # ======================================================
+        # ERROR HANDLING
+        # ======================================================
 
         except Exception as error:
 
             error_message = str(error).lower()
+
+
+            # ==================================================
+            # RATE LIMIT ERROR
+            # ==================================================
 
             if (
                 "rate_limit" in error_message
                 or "rate limit" in error_message
                 or "429" in error_message
             ):
+
                 st.error(
                     "⚠️ AI service usage limit has been reached. "
-                    "Please wait for the API limit to reset and try again later."
+                    "Please wait for the API limit to reset "
+                    "and try again later."
                 )
 
-            elif "api key" in error_message or "authentication" in error_message:
+
+            # ==================================================
+            # API KEY ERROR
+            # ==================================================
+
+            elif (
+                "api key" in error_message
+                or "authentication" in error_message
+                or "401" in error_message
+            ):
+
                 st.error(
                     "🔑 AI service authentication failed. "
                     "Please check the API configuration."
                 )
 
-            elif "connection" in error_message or "timeout" in error_message:
+
+            # ==================================================
+            # CONNECTION ERROR
+            # ==================================================
+
+            elif (
+                "connection" in error_message
+                or "timeout" in error_message
+            ):
+
                 st.error(
                     "🌐 Unable to connect to the AI service. "
-                    "Please check your internet connection and try again."
+                    "Please check your internet connection "
+                    "and try again."
                 )
+
+
+            # ==================================================
+            # GENERAL ERROR
+            # ==================================================
 
             else:
+
                 st.error(
-                    "❌ Something went wrong while processing the content. "
-                    "Please try again later."
+                    "❌ Something went wrong while processing "
+                    "the content. Please try again."
                 )
 
-            with st.expander("🔧 Technical Error Details"):
-                st.code(str(error))
+
+            # ==================================================
+            # TECHNICAL ERROR DETAILS
+            # ==================================================
+
+            with st.expander(
+                "🔧 Technical Error Details"
+            ):
+
+                st.code(
+                    str(error)
+                )
